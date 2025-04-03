@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperación de Contraseña</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .info {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+        .email-simulation {
+            background-color: #f8f9fa;
+            border: 1px dashed #6c757d;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        #countdown {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Paso 1: Solicitar recuperación -->
+        <div id="step1" class="step active">
+            <h1>Recuperar Contraseña</h1>
+            <div id="message1" class="message" style="display: none;"></div>
+            <div class="form-group">
+                <label for="email">Correo Electrónico:</label>
+                <input type="email" id="email" required>
+            </div>
+            <button id="requestBtn">Enviar Enlace de Recuperación</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="index.html">Volver al inicio de sesión</a>
+            </p>
+            
+            <!-- Simulación de email -->
+            <div id="emailSimulation" class="email-simulation">
+                <h3>Email de Recuperación (Simulación)</h3>
+                <p><strong>Para:</strong> <span id="simulatedTo"></span></p>
+                <p><strong>Asunto:</strong> Recuperación de contraseña</p>
+                <p><strong>Mensaje:</strong> Haga clic en el siguiente enlace para restablecer su contraseña:</p>
+                <p><a href="#" id="simulatedLink">http://ejemplo.com/reset?token=<span id="simulatedToken"></span></a></p>
+                <p><em>Este enlace expirará en 1 hora.</em></p>
+                <button onclick="useSimulatedToken()">Usar este código</button>
+            </div>
+        </div>
+
+        <!-- Paso 2: Ingresar token -->
+        <div id="step2" class="step">
+            <h1>Verificar Código</h1>
+            <div id="message2" class="message" style="display: none;"></div>
+            <div class="form-group">
+                <label for="token">Código de Verificación:</label>
+                <input type="text" id="token" required placeholder="Ingrese el código de 6 dígitos">
+            </div>
+            <button id="verifyBtn">Verificar Código</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" id="backLink1">Volver atrás</a>
+            </p>
+        </div>
+
+        <!-- Paso 3: Nueva contraseña -->
+        <div id="step3" class="step">
+            <h1>Nueva Contraseña</h1>
+            <div id="message3" class="message" style="display: none;"></div>
+            <div class="form-group">
+                <label for="newPassword">Nueva Contraseña:</label>
+                <input type="password" id="newPassword" required>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Contraseña:</label>
+                <input type="password" id="confirmPassword" required>
+            </div>
+            <button id="resetBtn">Restablecer Contraseña</button>
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="#" id="backLink2">Volver atrás</a>
+            </p>
+        </div>
+
+        <!-- Paso 4: Confirmación -->
+        <div id="step4" class="step">
+            <h1>Contraseña Restablecida</h1>
+            <div id="message4" class="message success">
+                ¡Tu contraseña ha sido restablecida exitosamente!
+                <br><br>
+                Redirigiendo a la página de inicio en <span id="countdown">5</span> segundos...
+            </div>
+            <button id="loginLink2">Ir al Inicio de Sesión Ahora</button>
+        </div>
+    </div>
+
+    <script>
+        // Datos de ejemplo almacenados en localStorage
+        const initializeDemoData = () => {
+            if (!localStorage.getItem('demoUsers')) {
+                const demoUsers = {
+                    'usuario@ejemplo.com': {
+                        password: 'password123'
+                    },
+                    'correo@dominio.com': {
+                        password: 'miclave456'
+                    }
+                };
+                localStorage.setItem('demoUsers', JSON.stringify(demoUsers));
+            }
+            
+            if (!localStorage.getItem('recoveryTokens')) {
+                localStorage.setItem('recoveryTokens', JSON.stringify({}));
+            }
+        };
+
+        // Inicializar datos al cargar la página
+        initializeDemoData();
+
+        // Elementos del DOM
+        const elements = {
+            steps: {
+                step1: document.getElementById('step1'),
+                step2: document.getElementById('step2'),
+                step3: document.getElementById('step3'),
+                step4: document.getElementById('step4')
+            },
+            inputs: {
+                email: document.getElementById('email'),
+                token: document.getElementById('token'),
+                newPassword: document.getElementById('newPassword'),
+                confirmPassword: document.getElementById('confirmPassword')
+            },
+            buttons: {
+                requestBtn: document.getElementById('requestBtn'),
+                verifyBtn: document.getElementById('verifyBtn'),
+                resetBtn: document.getElementById('resetBtn'),
+                loginLink2: document.getElementById('loginLink2'),
+                backLink1: document.getElementById('backLink1'),
+                backLink2: document.getElementById('backLink2')
+            },
+            messages: {
+                message1: document.getElementById('message1'),
+                message2: document.getElementById('message2'),
+                message3: document.getElementById('message3'),
+                message4: document.getElementById('message4')
+            },
+            emailSimulation: {
+                container: document.getElementById('emailSimulation'),
+                to: document.getElementById('simulatedTo'),
+                token: document.getElementById('simulatedToken'),
+                link: document.getElementById('simulatedLink')
+            },
+            countdown: document.getElementById('countdown')
+        };
+
+        // Cambiar entre pasos
+        const changeStep = (currentStep, nextStep) => {
+            elements.steps[currentStep].classList.remove('active');
+            elements.steps[nextStep].classList.add('active');
+        };
+
+        // Mostrar mensaje
+        const showMessage = (step, message, type) => {
+            const messageElement = elements.messages[`message${step}`];
+            messageElement.textContent = message;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+        };
+
+        // Generar token aleatorio
+        const generateToken = () => {
+            return Math.floor(100000 + Math.random() * 900000); // Código de 6 dígitos
+        };
+
+        // Paso 1: Solicitar recuperación
+        const requestRecovery = () => {
+            const email = elements.inputs.email.value.trim();
+            
+            if (!email) {
+                showMessage(1, 'Por favor ingresa tu correo electrónico', 'error');
+                return;
+            }
+            
+            // Verificar si el email existe
+            const users = JSON.parse(localStorage.getItem('demoUsers'));
+            
+            if (!users[email]) {
+                showMessage(1, 'Este correo no está registrado en nuestro sistema', 'error');
+                return;
+            }
+            
+            // Generar token
+            const token = generateToken();
+            const expiration = Date.now() + 3600000; // 1 hora
+            
+            // Guardar token en localStorage
+            const tokens = JSON.parse(localStorage.getItem('recoveryTokens'));
+            tokens[email] = {
+                token: token,
+                expires: expiration
+            };
+            localStorage.setItem('recoveryTokens', JSON.stringify(tokens));
+            
+            // Guardar email en memoria para los siguientes pasos
+            sessionStorage.setItem('recoveryEmail', email);
+            
+            // Mostrar simulación de email
+            elements.emailSimulation.to.textContent = email;
+            elements.emailSimulation.token.textContent = token;
+            elements.emailSimulation.container.style.display = 'block';
+            
+            // Mostrar mensaje de éxito
+            showMessage(1, `Se ha enviado un código de verificación a ${email}`, 'success');
+            
+            // Ir al paso 2 después de 1 segundo
+            setTimeout(() => changeStep('1', '2'), 1000);
+        };
+
+        // Usar token simulado (para facilitar pruebas)
+        const useSimulatedToken = () => {
+            const token = elements.emailSimulation.token.textContent;
+            elements.inputs.token.value = token;
+            changeStep('1', '2');
+        };
+
+        // Paso 2: Verificar token
+        const verifyToken = () => {
+            const email = sessionStorage.getItem('recoveryEmail');
+            const token = elements.inputs.token.value.trim();
+            
+            if (!token) {
+                showMessage(2, 'Por favor ingresa el código de verificación', 'error');
+                return;
+            }
+            
+            if (token.length !== 6 || !/^\d+$/.test(token)) {
+                showMessage(2, 'El código debe tener 6 dígitos numéricos', 'error');
+                return;
+            }
+            
+            // Verificar token
+            const tokens = JSON.parse(localStorage.getItem('recoveryTokens'));
+            const userToken = tokens[email];
+            
+            if (!userToken || userToken.token !== parseInt(token)) {
+                showMessage(2, 'Código de verificación incorrecto', 'error');
+                return;
+            }
+            
+            // Verificar expiración
+            if (userToken.expires < Date.now()) {
+                showMessage(2, 'El código ha expirado. Solicita uno nuevo.', 'error');
+                return;
+            }
+            
+            // Ir al paso 3
+            changeStep('2', '3');
+        };
+
+        // Paso 3: Restablecer contraseña
+        const resetPassword = () => {
+            const email = sessionStorage.getItem('recoveryEmail');
+            const newPassword = elements.inputs.newPassword.value;
+            const confirmPassword = elements.inputs.confirmPassword.value;
+            
+            if (!newPassword || !confirmPassword) {
+                showMessage(3, 'Por favor completa ambos campos', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showMessage(3, 'Las contraseñas no coinciden', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showMessage(3, 'La contraseña debe tener al menos 6 caracteres', 'error');
+                return;
+            }
+            
+            // Actualizar contraseña en los datos de demo
+            const users = JSON.parse(localStorage.getItem('demoUsers'));
+            users[email].password = newPassword;
+            localStorage.setItem('demoUsers', JSON.stringify(users));
+            
+            // Eliminar token usado
+            const tokens = JSON.parse(localStorage.getItem('recoveryTokens'));
+            delete tokens[email];
+            localStorage.setItem('recoveryTokens', JSON.stringify(tokens));
+            
+            // Limpiar campos
+            elements.inputs.newPassword.value = '';
+            elements.inputs.confirmPassword.value = '';
+            
+            // Ir al paso 4
+            changeStep('3', '4');
+            
+            // Iniciar cuenta regresiva para redirección
+            startCountdown();
+        };
+
+        // Cuenta regresiva para redirección
+        const startCountdown = () => {
+            let seconds = 5;
+            elements.countdown.textContent = seconds;
+            
+            const countdownInterval = setInterval(() => {
+                seconds--;
+                elements.countdown.textContent = seconds;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    window.location.href = 'index.html';
+                }
+            }, 1000);
+        };
+
+        // Redirección a index.html
+        const goToIndex = () => {
+            window.location.href = 'index.html';
+        };
+
+        // Event listeners
+        elements.buttons.requestBtn.addEventListener('click', requestRecovery);
+        elements.buttons.verifyBtn.addEventListener('click', verifyToken);
+        elements.buttons.resetBtn.addEventListener('click', resetPassword);
+        elements.buttons.loginLink2.addEventListener('click', goToIndex);
+        elements.buttons.backLink1.addEventListener('click', () => changeStep('2', '1'));
+        elements.buttons.backLink2.addEventListener('click', () => changeStep('3', '2'));
+        
+        // Permitir enviar con Enter
+        elements.inputs.email.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') requestRecovery();
+        });
+        
+        elements.inputs.token.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') verifyToken();
+        });
+        
+        elements.inputs.confirmPassword.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') resetPassword();
+        });
+    </script>
+</body>
+</html>

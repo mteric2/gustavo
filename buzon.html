@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzón de Quejas - Maxi Riego</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2c7d3f;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo img {
+            max-width: 200px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        
+        .required {
+            color: #e74c3c;
+        }
+        
+        .btn-submit {
+            background-color: #2c7d3f;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-submit:hover {
+            background-color: #23903c;
+        }
+        
+        .confirmation {
+            display: none;
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .back-to-index {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        
+        .back-arrow {
+            font-size: 24px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .back-text {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <!-- Reemplaza con el logo real de Maxi Riego -->
+            
+        </div>
+        
+        <h1>Buzón de Quejas y Sugerencias</h1>
+        
+        <form id="complaintForm">
+            <div class="form-group">
+                <label for="name">Nombre completo <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required>
+                <div class="error" id="nameError">Por favor ingrese su nombre completo</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Correo electrónico <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required>
+                <div class="error" id="emailError">Por favor ingrese un correo electrónico válido</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Teléfono</label>
+                <input type="tel" id="phone" name="phone">
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Asunto <span class="required">*</span></label>
+                <select id="subject" name="subject" required>
+                    <option value="">Seleccione un asunto...</option>
+                    <option value="queja">Queja</option>
+                    <option value="sugerencia">Sugerencia</option>
+                    <option value="reclamo">Reclamo</option>
+                    <option value="felicitacion">Felicitación</option>
+                    <option value="otro">Otro</option>
+                </select>
+                <div class="error" id="subjectError">Por favor seleccione un asunto</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Mensaje <span class="required">*</span></label>
+                <textarea id="message" name="message" required></textarea>
+                <div class="error" id="messageError">Por favor ingrese su mensaje</div>
+            </div>
+            
+            <button type="submit" class="btn-submit">Enviar Queja/Sugerencia</button>
+        </form>
+        
+        <div class="confirmation" id="confirmation">
+            <h3>¡Gracias por su feedback!</h3>
+            <p>Hemos recibido su mensaje y nos pondremos en contacto con usted en un plazo máximo de 48 horas.</p>
+            <p>Número de seguimiento: <strong id="trackingNumber"></strong></p>
+        </div>
+        
+        <div class="back-to-index" id="backToIndex">
+            <span class="back-arrow">←</span>
+            <span class="back-text">Volver a la página principal</span>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('complaintForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validación de campos
+            let isValid = true;
+            const name = document.getElementById('name');
+            const email = document.getElementById('email');
+            const subject = document.getElementById('subject');
+            const message = document.getElementById('message');
+            
+            // Validar nombre
+            if (name.value.trim() === '') {
+                document.getElementById('nameError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('nameError').style.display = 'none';
+            }
+            
+            // Validar email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email.value)) {
+                document.getElementById('emailError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('emailError').style.display = 'none';
+            }
+            
+            // Validar asunto
+            if (subject.value === '') {
+                document.getElementById('subjectError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('subjectError').style.display = 'none';
+            }
+            
+            // Validar mensaje
+            if (message.value.trim() === '') {
+                document.getElementById('messageError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('messageError').style.display = 'none';
+            }
+            
+            if (isValid) {
+                // Generar número de seguimiento
+                const trackingNum = 'MR-' + Date.now().toString().slice(-6);
+                document.getElementById('trackingNumber').textContent = trackingNum;
+                
+                // Mostrar confirmación y flecha de regreso
+                document.getElementById('complaintForm').style.display = 'none';
+                document.getElementById('confirmation').style.display = 'block';
+                document.getElementById('backToIndex').style.display = 'block';
+                
+                // Guardar en localStorage (solo para demostración)
+                const complaint = {
+                    name: name.value,
+                    email: email.value,
+                    phone: document.getElementById('phone').value,
+                    subject: subject.value,
+                    message: message.value,
+                    date: new Date().toISOString(),
+                    tracking: trackingNum
+                };
+                
+                let complaints = JSON.parse(localStorage.getItem('maxiRiegoComplaints') || '[]');
+                complaints.push(complaint);
+                localStorage.setItem('maxiRiegoComplaints', JSON.stringify(complaints));
+            }
+        });
+        
+        // Función para volver al index
+        document.getElementById('backToIndex').addEventListener('click', function() {
+            // Cambia esta URL por la de tu página principal
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
